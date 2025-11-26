@@ -1,5 +1,3 @@
-# model_training.py
-
 from sklearn.tree import DecisionTreeClassifier
 
 def train_decision_tree(X_train, y_train):
