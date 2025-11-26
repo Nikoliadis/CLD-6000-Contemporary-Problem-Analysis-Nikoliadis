@@ -1,40 +1,50 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
 
-def load_data(path: str) -> pd.DataFrame:
-    """Load HR dataset from CSV."""
-    df = pd.read_csv(path)
-    return df
+def load_dataset(path: str):
+    return pd.read_csv(path)
 
-def preprocess_data(df: pd.DataFrame, target_column: str = "Attrition"):
-    """
-    Preprocess HR dataset:
-    - drop rows with all NaNs
-    - encode categorical variables
-    - split into train / test
-    """
-    
-    df = df.dropna(how="all")
+def preprocess_data(df):
+    # 1. Remove fully empty rows
+    df = df.dropna(how='all')
 
-    y = df[target_column]
-    X = df.drop(columns=[target_column])
+    # 2. Drop rows with missing critical values
+    df = df.dropna(how='any')
 
+    # 3. FEATURE ENGINEERING
+    df['TenureLevel'] = pd.cut(
+        df['YearsAtCompany'],
+        bins=[0, 2, 5, 10, 40],
+        labels=['New', 'Junior', 'Mid', 'Senior'],
+        include_lowest=True
+    )
+
+    # Convert categorical result TO STRING to avoid the NaN category problem
+    df['TenureLevel'] = df['TenureLevel'].astype(str)
+
+    df['WorkLifeBalanceScore'] = (
+        df['WorkLifeBalance'] +
+        df['JobSatisfaction'] +
+        df['EnvironmentSatisfaction']
+    )
+
+    # 4. LABEL ENCODING
     label_encoders = {}
-    for col in X.columns:
-        if X[col].dtype == "object":
-            le = LabelEncoder()
-            X[col] = le.fit_transform(X[col].astype(str))
-            label_encoders[col] = le
+    for col in df.select_dtypes(include=['object']).columns:
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col].astype(str))
+        label_encoders[col] = le
 
-    if y.dtype == "object":
-        target_encoder = LabelEncoder()
-        y = target_encoder.fit_transform(y.astype(str))
-    else:
-        target_encoder = None
+    # 5. FINAL NA CLEAN
+    df = df.fillna(0)  # now safe because no column is Categorical anymore
+
+    # 6. TRAIN / TEST SPLIT
+    X = df.drop(columns=['Attrition'])
+    y = df['Attrition']
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.3, random_state=42, stratify=y
     )
 
-    return X_train, X_test, y_train, y_test, label_encoders, target_encoder
+    return X_train, X_test, y_train, y_test, label_encoders
