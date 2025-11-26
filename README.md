@@ -18,4 +18,4 @@ This repository contains the experiments and implementation for predicting emplo
 
 ```bash
 pip install -r requirements.txt
-python src/train_models.py
+python src/pipeline.py

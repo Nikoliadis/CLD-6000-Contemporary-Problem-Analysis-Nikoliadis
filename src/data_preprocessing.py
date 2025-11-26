@@ -37,7 +37,7 @@ def preprocess_data(df):
         label_encoders[col] = le
 
     # 5. FINAL NA CLEAN
-    df = df.fillna(0)  # now safe because no column is Categorical anymore
+    df = df.fillna(0)
 
     # 6. TRAIN / TEST SPLIT
     X = df.drop(columns=['Attrition'])
