@@ -20,8 +20,25 @@ if not model_path.exists():
 model_artifact = load_pipeline(model_path)
 
 st.write("Enter a subset of employee details. Missing fields will be handled by preprocessing.")
+
+# =========================
+# Employee Identity
+# =========================
+st.subheader("👤 Employee Identity")
+
+col_name1, col_name2 = st.columns(2)
+
+with col_name1:
+    first_name = st.text_input("First Name", value="John")
+
+with col_name2:
+    last_name = st.text_input("Last Name", value="Doe")
+
 st.divider()
 
+# =========================
+# Employee Features
+# =========================
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -39,11 +56,13 @@ with col3:
     job_role = st.text_input("JobRole", value="Sales Executive")
     department = st.text_input("Department", value="Sales")
 
-# Auto-derive OverTime from working hours
+# Derived feature
 overtime = "Yes" if hours_per_day > 8 else "No"
 st.write(f"Derived OverTime: **{overtime}** (based on {hours_per_day} hours/day)")
 
 employee = {
+    "FirstName": first_name,
+    "LastName": last_name,
     "Age": age,
     "YearsAtCompany": years_at_company,
     "OverTime": overtime,
@@ -57,10 +76,14 @@ employee = {
 
 log_path = BASE_DIR / "models" / "prediction_log.csv"
 
+# =========================
+# Prediction
+# =========================
 if st.button("Predict"):
+    st.info(f"Prediction for **{first_name} {last_name}**")
+
     pred_label, prob_yes = predict_from_dict(model_artifact, employee)
 
-    # Use model label as decision (since you removed threshold)
     decision = "Yes" if pred_label == "Yes" else "No"
 
     if decision == "Yes":
@@ -68,14 +91,25 @@ if st.button("Predict"):
     else:
         st.success(f"✅ Prediction: Attrition = NO (probability ~ {prob_yes:.2f})")
 
-    # Save prediction record
     log_prediction(employee, prob_yes, decision, log_path)
 
 st.caption("Note: For best results, provide as many fields as available from the dataset.")
 
+# =========================
+# Prediction Record
+# =========================
 st.subheader("📁 Prediction Record")
+
 if log_path.exists():
-    df_log = pd.read_csv(log_path)
-    st.dataframe(df_log.tail(20), use_container_width=True)
+    try:
+        df_log = pd.read_csv(log_path, engine="python", on_bad_lines="skip")
+        if len(df_log) > 0:
+            st.dataframe(df_log.tail(20), use_container_width=True)
+        else:
+            st.info("No records yet.")
+    except Exception as e:
+        st.error("Prediction log could not be read.")
+        st.code(str(e))
 else:
-    st.info("No Record Yet.")
+    st.info("No records yet.")
+

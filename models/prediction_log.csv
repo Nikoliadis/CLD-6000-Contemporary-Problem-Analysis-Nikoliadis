@@ -1,3 +1,7 @@
-Age,YearsAtCompany,OverTime,MonthlyIncome,JobSatisfaction,WorkLifeBalance,EnvironmentSatisfaction,JobRole,Department,timestamp,prob_yes,decision
-30,3,No,880,3,3,3,Sales Executive,Sales,2025-12-25 19:09:46,0.6340925789860401,Yes
-30,3,No,5000,3,3,3,Sales Executive,Sales,2025-12-25 19:10:19,0.0,No
+Fist Name, Last Name,Age,Years At Company,OverTime,Monthly Income,Job Satisfaction,Work-Life Balance,Environment Satisfaction,Job Role,Department,timestamp,prob_yes,decision
+John,Doe,30,3,No,880,3,3,3,Sales Executive,Sales,2025-12-25 19:24:03,0.6340925789860401,Yes
+John,Doe,30,3,No,880,3,3,3,Sales Executive,Sales,2025-12-25 19:24:44,0.6340925789860401,Yes
+Test,Test,30,3,No,880,3,3,3,Sales Executive,Sales,2025-12-25 19:24:52,0.6340925789860401,Yes
+Test,Test,30,3,No,600,3,3,3,Sales Executive,Sales,2025-12-25 19:25:48,0.6340925789860401,Yes
+John,Doe,30,3,No,880,3,3,3,Sales Executive,Sales,2025-12-25 19:26:11,0.0,No
+John,Doe,30,3,No,880,3,3,3,Sales Executive,Sales,2025-12-25 19:26:23,0.7428128765708379,Yes
