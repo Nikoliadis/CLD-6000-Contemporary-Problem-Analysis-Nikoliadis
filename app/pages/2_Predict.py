@@ -84,14 +84,26 @@ if st.button("Predict"):
 
     pred_label, prob_yes = predict_from_dict(model_artifact, employee)
 
-    decision = "Yes" if pred_label == "Yes" else "No"
+    # =========================
+    # Business rule override
+    # =========================
+    salary_floor = 880  # € threshold
+    rule_triggered = monthly_income <= salary_floor
 
+    if rule_triggered:
+        decision = "Yes"
+    else:
+        decision = "Yes" if pred_label == "Yes" else "No"
+
+    # Display final decision
     if decision == "Yes":
         st.error(f"⚠️ Prediction: Attrition = YES (probability ~ {prob_yes:.2f})")
     else:
         st.success(f"✅ Prediction: Attrition = NO (probability ~ {prob_yes:.2f})")
 
+    # Log final decision (decision after rule)
     log_prediction(employee, prob_yes, decision, log_path)
+
 
 st.caption("Note: For best results, provide as many fields as available from the dataset.")
 
