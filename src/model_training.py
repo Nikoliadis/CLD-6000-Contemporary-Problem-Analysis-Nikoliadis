@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 from sklearn.tree import DecisionTreeClassifier
 
-def train_decision_tree(X_train, y_train):
+
+def build_model(random_state: int = 42) -> DecisionTreeClassifier:
     """
-    Train a Decision Tree model according to the Design Document.
+    Decision Tree classifier (interpretable baseline), aligned with the design document.
     """
-    model = DecisionTreeClassifier(
+    return DecisionTreeClassifier(
         max_depth=6,
-        criterion='gini',
-        random_state=42
+        random_state=random_state,
+        class_weight="balanced",
     )
-    model.fit(X_train, y_train)
-    return model

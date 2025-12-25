@@ -1,50 +1,80 @@
-import pandas as pd
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
+from __future__ import annotations
 
-def load_dataset(path: str):
+from typing import Tuple
+
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.pipeline import Pipeline
+
+TARGET_COL = "Attrition"
+
+
+def load_dataset(path: str) -> pd.DataFrame:
+    """Load HR dataset from CSV."""
     return pd.read_csv(path)
 
-def preprocess_data(df):
-    # 1. Remove fully empty rows
-    df = df.dropna(how='all')
 
-    # 2. Drop rows with missing critical values
-    df = df.dropna(how='any')
+def add_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add engineered features used by the system (as described in the design doc).
+    - TenureLevel: binned YearsAtCompany
+    - WorkLifeBalanceScore: sum of satisfaction/balance signals
+    """
+    df = df.copy()
 
-    # 3. FEATURE ENGINEERING
-    df['TenureLevel'] = pd.cut(
-        df['YearsAtCompany'],
-        bins=[0, 2, 5, 10, 40],
-        labels=['New', 'Junior', 'Mid', 'Senior'],
-        include_lowest=True
+    if "YearsAtCompany" in df.columns:
+        df["TenureLevel"] = pd.cut(
+            df["YearsAtCompany"],
+            bins=[-1, 2, 5, 10, 40],
+            labels=["New", "Junior", "Mid", "Senior"],
+            include_lowest=True,
+        ).astype("object")
+
+    score_cols = [c for c in ["WorkLifeBalance", "JobSatisfaction", "EnvironmentSatisfaction"] if c in df.columns]
+    if score_cols:
+        df["WorkLifeBalanceScore"] = df[score_cols].sum(axis=1)
+
+    return df
+
+
+def split_features_target(df: pd.DataFrame, target_col: str = TARGET_COL) -> Tuple[pd.DataFrame, pd.Series]:
+    if target_col not in df.columns:
+        raise ValueError(f"Target column '{target_col}' not found in dataset.")
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+    return X, y
+
+
+def build_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
+    """
+    Build preprocessing transformer:
+    - Numeric: impute median
+    - Categorical: impute most_frequent + ordinal encode (handles unseen categories)
+    """
+    numeric_cols = X.select_dtypes(include=["number", "bool"]).columns.tolist()
+    categorical_cols = [c for c in X.columns if c not in numeric_cols]
+
+    numeric_pipeline = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+        ]
     )
 
-    # Convert categorical result TO STRING to avoid the NaN category problem
-    df['TenureLevel'] = df['TenureLevel'].astype(str)
-
-    df['WorkLifeBalanceScore'] = (
-        df['WorkLifeBalance'] +
-        df['JobSatisfaction'] +
-        df['EnvironmentSatisfaction']
+    categorical_pipeline = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("encoder", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)),
+        ]
     )
 
-    # 4. LABEL ENCODING
-    label_encoders = {}
-    for col in df.select_dtypes(include=['object']).columns:
-        le = LabelEncoder()
-        df[col] = le.fit_transform(df[col].astype(str))
-        label_encoders[col] = le
-
-    # 5. FINAL NA CLEAN
-    df = df.fillna(0)
-
-    # 6. TRAIN / TEST SPLIT
-    X = df.drop(columns=['Attrition'])
-    y = df['Attrition']
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42, stratify=y
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", numeric_pipeline, numeric_cols),
+            ("cat", categorical_pipeline, categorical_cols),
+        ],
+        remainder="drop",
+        verbose_feature_names_out=False,
     )
-
-    return X_train, X_test, y_train, y_test, label_encoders
+    return preprocessor
