@@ -1,0 +1,3 @@
+Age,YearsAtCompany,OverTime,MonthlyIncome,JobSatisfaction,WorkLifeBalance,EnvironmentSatisfaction,JobRole,Department,timestamp,prob_yes,decision
+30,3,No,880,3,3,3,Sales Executive,Sales,2025-12-25 19:09:46,0.6340925789860401,Yes
+30,3,No,5000,3,3,3,Sales Executive,Sales,2025-12-25 19:10:19,0.0,No

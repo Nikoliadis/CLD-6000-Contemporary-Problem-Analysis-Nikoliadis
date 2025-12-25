@@ -20,17 +20,6 @@ if not model_path.exists():
 model_artifact = load_pipeline(model_path)
 
 st.write("Enter a subset of employee details. Missing fields will be handled by preprocessing.")
-
-# ✅ Threshold slider to control sensitivity for predicting "Yes"
-threshold = st.slider(
-    "Decision threshold for 'Attrition = YES'",
-    min_value=0.05,
-    max_value=0.95,
-    value=0.30,
-    step=0.01,
-)
-st.caption("Lower threshold → more 'YES' predictions (higher recall). Higher threshold → stricter predictions.")
-
 st.divider()
 
 col1, col2, col3 = st.columns(3)
@@ -41,7 +30,6 @@ with col1:
     hours_per_day = st.number_input("Working hours per day", min_value=1, max_value=16, value=8)
 
 with col2:
-    # ✅ Greek baseline default, but UI stays English
     monthly_income = st.number_input("MonthlyIncome (€)", min_value=0, max_value=50000, value=880)
     job_satisfaction = st.slider("JobSatisfaction (1-4)", 1, 4, 3)
     work_life_balance = st.slider("WorkLifeBalance (1-4)", 1, 4, 3)
@@ -72,22 +60,20 @@ log_path = BASE_DIR / "models" / "prediction_log.csv"
 if st.button("Predict"):
     pred_label, prob_yes = predict_from_dict(model_artifact, employee)
 
-    # ✅ Decision based on threshold (not just default model label)
-    will_leave = prob_yes >= threshold
-    decision = "Yes" if will_leave else "No"
+    # Use model label as decision (since you removed threshold)
+    decision = "Yes" if pred_label == "Yes" else "No"
 
-    if will_leave:
+    if decision == "Yes":
         st.error(f"⚠️ Prediction: Attrition = YES (probability ~ {prob_yes:.2f})")
     else:
         st.success(f"✅ Prediction: Attrition = NO (probability ~ {prob_yes:.2f})")
 
-    # ✅ Save prediction record
+    # Save prediction record
     log_prediction(employee, prob_yes, decision, log_path)
 
 st.caption("Note: For best results, provide as many fields as available from the dataset.")
 
 st.subheader("📁 Prediction Record")
-
 if log_path.exists():
     df_log = pd.read_csv(log_path)
     st.dataframe(df_log.tail(20), use_container_width=True)
