@@ -1,19 +1,50 @@
-from __future__ import annotations
+from typing import List, Tuple
 
+import numpy as np
+import pandas as pd
 from sklearn.feature_selection import SelectKBest, mutual_info_classif
 
-import pandas as pd
-import numpy as np
 
-def build_selector(k: int = 12) -> SelectKBest:
-    """Select top-k features using mutual information."""
-    return SelectKBest(score_func=mutual_info_classif, k=k)
+def select_features(
+    X_train: pd.DataFrame,
+    y_train,
+    X_test: pd.DataFrame,
+    k: int = 12,
+    must_keep: List[str] | None = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame, List[str]]:
+    """
+    Select top-k features using mutual information, BUT always keep 'must_keep' features.
+    Returns:
+      X_train_selected, X_test_selected, selected_feature_names
+    """
+    if must_keep is None:
+        must_keep = []
 
-def select_top_k_features(X: pd.DataFrame, y: pd.Series, k: int):
-    mi = mutual_info_classif(X, y, random_state=42)
-    mi_scores = pd.Series(mi, index=X.columns)
-    mi_scores = mi_scores.sort_values(ascending=False)
+    # Keep only features that actually exist
+    must_keep = [c for c in must_keep if c in X_train.columns]
 
-    selected_features = mi_scores.head(k).index.tolist()
+    # If k is smaller than must_keep count, increase k
+    if k < len(must_keep):
+        k = len(must_keep)
 
-    return X[selected_features], selected_features, mi_scores
+    # Score all features
+    selector = SelectKBest(score_func=mutual_info_classif, k="all")
+    selector.fit(X_train, y_train)
+
+    scores = selector.scores_
+    scores = np.nan_to_num(scores, nan=0.0)
+
+    score_series = pd.Series(scores, index=X_train.columns).sort_values(ascending=False)
+
+    # Start with must_keep, then fill remaining slots with top-scoring features
+    selected = list(dict.fromkeys(must_keep))  # unique preserve order
+
+    for feat in score_series.index:
+        if feat not in selected:
+            selected.append(feat)
+        if len(selected) >= k:
+            break
+
+    X_train_sel = X_train[selected].copy()
+    X_test_sel = X_test[selected].copy()
+    return X_train_sel, X_test_sel, selected
