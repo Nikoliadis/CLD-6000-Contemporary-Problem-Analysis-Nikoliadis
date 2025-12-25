@@ -1,10 +1,12 @@
 from __future__ import annotations
+from datetime import datetime
 
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import joblib
 import pandas as pd
+from pathlib import Path
 
 from data_preprocessing import add_feature_engineering
 
@@ -78,5 +80,21 @@ def predict_from_dict(model_artifact: Dict[str, Any], employee: Dict[str, Any]) 
             prob_yes = float(proba[classes.index("Yes")])
         else:
             prob_yes = float(max(proba))
+
+def log_prediction(employee: dict, prob_yes: float, decision: str, log_path: str | Path):
+    log_path = Path(log_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    row = employee.copy()
+    row["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    row["prob_yes"] = float(prob_yes)
+    row["decision"] = decision
+
+    df_row = pd.DataFrame([row])
+
+    if log_path.exists():
+        df_row.to_csv(log_path, mode="a", index=False, header=False, encoding="utf-8")
+    else:
+        df_row.to_csv(log_path, index=False, encoding="utf-8")
 
     return str(pred_label), prob_yes

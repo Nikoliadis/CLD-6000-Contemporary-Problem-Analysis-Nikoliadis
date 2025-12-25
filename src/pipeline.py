@@ -50,6 +50,17 @@ def run_pipeline(k_features: int = 12, test_size: float = 0.30, random_state: in
     # 6) Train
     pipe.fit(X_train, y_train)
 
+    
+    preprocess = pipe.named_steps["preprocess"]
+    selector = pipe.named_steps["select"]
+
+    feature_names = preprocess.get_feature_names_out()
+
+    mask = selector.get_support()
+
+    selected_features = [name for name, keep in zip(feature_names, mask) if keep]
+
+
     # 7) Evaluate
     y_pred = pipe.predict(X_test)
     metrics, report, cm = evaluate_model(y_test, y_pred)
@@ -60,6 +71,7 @@ def run_pipeline(k_features: int = 12, test_size: float = 0.30, random_state: in
         {
             "pipeline": pipe,
             "train_columns": list(X_train.columns),
+            "selected_features": selected_features,
         },
         model_path,
     )
@@ -69,7 +81,7 @@ def run_pipeline(k_features: int = 12, test_size: float = 0.30, random_state: in
     (MODELS_DIR / "classification_report.txt").write_text(report, encoding="utf-8")
     save_confusion_matrix(cm, MODELS_DIR / "confusion_matrix.png")
 
-    return metrics, report, cm, model_path
+    return metrics, report, cm, model_path, selected_features
 
 
 if __name__ == "__main__":

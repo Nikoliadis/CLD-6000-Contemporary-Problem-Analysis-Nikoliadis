@@ -6,7 +6,7 @@ python -m venv .venv
 .\.venv\Scripts\activate
 python -m pip install -r requirements.txt
 python src\pipeline.py
-python -m streamlit run app\app.py
+python -m streamlit run app\Home.py
 ```
 
 ## What this project does
