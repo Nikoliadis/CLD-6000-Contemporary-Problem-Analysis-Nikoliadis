@@ -41,8 +41,8 @@ def _align_columns(X: pd.DataFrame, train_cols: list[str]) -> pd.DataFrame:
     X = X.copy()
     for col in train_cols:
         if col not in X.columns:
-            X[col] = np.nan  # ✅ must be np.nan (sklearn-friendly)
-    # drop extras + reorder
+            X[col] = np.nan
+
     return X[train_cols]
 
 
@@ -54,21 +54,16 @@ def predict_from_dict(model_artifact: Any, employee: Dict[str, Any]) -> Tuple[st
     """
     pipe = _get_pipeline(model_artifact)
 
-    # Build input frame (single row)
     X = pd.DataFrame([employee])
 
-    # Feature engineering first (must match training)
     X = add_feature_engineering(X)
 
-    # Align to training raw columns (so ColumnTransformer won't crash)
     train_cols = _get_train_columns(model_artifact)
     if train_cols:
         X = _align_columns(X, train_cols)
 
-    # Predict label
     pred_label = pipe.predict(X)[0]
 
-    # Predict probability for "Yes"
     prob_yes = float("nan")
     if hasattr(pipe, "predict_proba"):
         proba = pipe.predict_proba(X)[0]
@@ -79,7 +74,6 @@ def predict_from_dict(model_artifact: Any, employee: Dict[str, Any]) -> Tuple[st
         elif 1 in classes:
             prob_yes = float(proba[classes.index(1)])
         else:
-            # fallback
             prob_yes = float(proba[1]) if len(proba) > 1 else float(proba[0])
 
     return str(pred_label), prob_yes
@@ -103,7 +97,7 @@ def log_prediction(
 
     row = dict(employee)
     row["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    row["prob_yes"] = "" if (prob_yes != prob_yes) else float(prob_yes)  # NaN safe
+    row["prob_yes"] = "" if (prob_yes != prob_yes) else float(prob_yes)
     row["decision"] = decision
 
     df_row = pd.DataFrame([row])

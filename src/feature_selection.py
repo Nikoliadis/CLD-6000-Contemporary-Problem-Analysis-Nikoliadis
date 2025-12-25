@@ -20,14 +20,12 @@ def select_features(
     if must_keep is None:
         must_keep = []
 
-    # Keep only features that actually exist
     must_keep = [c for c in must_keep if c in X_train.columns]
 
     # If k is smaller than must_keep count, increase k
     if k < len(must_keep):
         k = len(must_keep)
 
-    # Score all features
     selector = SelectKBest(score_func=mutual_info_classif, k="all")
     selector.fit(X_train, y_train)
 
@@ -36,8 +34,7 @@ def select_features(
 
     score_series = pd.Series(scores, index=X_train.columns).sort_values(ascending=False)
 
-    # Start with must_keep, then fill remaining slots with top-scoring features
-    selected = list(dict.fromkeys(must_keep))  # unique preserve order
+    selected = list(dict.fromkeys(must_keep))
 
     for feat in score_series.index:
         if feat not in selected:

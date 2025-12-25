@@ -35,31 +35,24 @@ def run_pipeline(k_features=12):
     MODELS_DIR = BASE_DIR / "models"
     MODELS_DIR.mkdir(exist_ok=True)
 
-    # 1) Load
     df = load_dataset(str(DATA_PATH))
 
-    # 2) Split (raw frames)
     X_train, X_test, y_train, y_test = build_preprocess_pipeline(df)
 
-    # 3) Feature engineering (must apply on train/test BEFORE preprocessing)
     X_train = add_feature_engineering(X_train)
     X_test = add_feature_engineering(X_test)
 
-    # 4) Build & fit preprocessor on training only
     preprocessor = build_preprocessor(X_train)
     preprocessor.fit(X_train)
 
-    # Transform to numeric arrays for MI selection
     X_train_p = preprocessor.transform(X_train)
     X_test_p = preprocessor.transform(X_test)
 
-    # Get feature names AFTER preprocessing
     try:
         feature_names = list(preprocessor.get_feature_names_out())
     except Exception:
         feature_names = [f"f{i}" for i in range(X_train_p.shape[1])]
 
-    # Convert to DataFrame for your existing select_features() (mutual info)
     X_train_df = (
         X_train_p if hasattr(X_train_p, "toarray") is False else X_train_p.toarray()
     )
@@ -73,8 +66,6 @@ def run_pipeline(k_features=12):
 
     must_keep = ["YearsAtCompany", "JobSatisfaction", "WorkLifeBalance", "OverTime"]
 
-    # must_keep must match feature_names_out AFTER preprocessing.
-    # We keep them by substring match (robust).
     must_keep_after = []
     for mk in must_keep:
         for fn in feature_names:
@@ -91,7 +82,6 @@ def run_pipeline(k_features=12):
 
     selected_indices = [feature_names.index(f) for f in selected_feature_names]
 
-    # 5) Better models
     candidates = {
         "random_forest_balanced": RandomForestClassifier(
             n_estimators=400,
@@ -119,18 +109,15 @@ def run_pipeline(k_features=12):
             best_name = name
             best_model = model
 
-    # 6) Calibrate best model
     calibrated = CalibratedClassifierCV(best_model, method="isotonic", cv=3)
     calibrated.fit(X_train_sel, y_train)
 
     y_pred_cal = calibrated.predict(X_test_sel)
     metrics, report, cm = evaluate_model(y_test, y_pred_cal, pos_label="Yes")
 
-    # 7) Save visuals + report
     save_confusion_matrix(cm, MODELS_DIR / "confusion_matrix.png")
     save_classification_report(report, MODELS_DIR / "classification_report.txt")
 
-    # 8) Build FULL PIPELINE: raw -> preprocess -> select -> model
     full_pipeline = Pipeline(
         steps=[
             ("preprocess", preprocessor),
@@ -139,7 +126,6 @@ def run_pipeline(k_features=12):
         ]
     )
 
-    # IMPORTANT: fit full pipeline on RAW X_train
     full_pipeline.fit(X_train, y_train)
 
     artifact = {
